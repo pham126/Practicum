@@ -1,0 +1,725 @@
+---
+title: "Medical Expenditure Panel Survey: Data Visualization on HIV Population in the United States "
+author: "Jennifer Pham"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::downcute:
+    self_contained: true
+    default_style: "light"
+    downcute_theme: "default"
+---
+
+```{r setup, include=FALSE}
+## Global options
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+\
+This tutorial is a combined product of two deliverables I completed at the end of my practicum course in the Master in Public Health (MPH) program at the University of California San Diego (UCSD).
+
+The practicum was conducted at UCSD Skaggs School of Pharmacy & Pharmaceutical Sciences (SSPPS) and VA Health Economics Resource Center (HERC). To design an interactive data visualization of a population health tool on the prevalence of human immunodeficiency virus (HIV) in the United States, we used [**Medical Expenditure Panel Survey (MEPS)**](https://meps.ahrq.gov/mepsweb/index.jsp) data, which is publicly available and should be accessible to anyone who is interested in public health. This open-source data visualization tool will allow others to reproduce, verify or validate other studies or reports.
+
+# **Introduction**
+
+Researchers have used the Agency for Healthcare Research and Quality (AHRQ) Medical Expenditure Panel Survey (MEPS) data for critical public health investigations that have led to more robust hypothesis generating studies. MEPS is a dataset that uses a complex survey design to capture healthcare expenditures among a representative population in the United States. It is administered annually and contains information on the respondents' demographics, income, health, and healthcare expenditures. However, there is a lack of engagement with MEPS data by pharmacy students and researchers at SSPPS. This project will introduce researchers at SSPPS to use MEPS data to perform original investigations that will lead to potential funding.
+
+# **Access MEPS Data**
+
+There are various types of dataset you can access in the [**MEPS data files page**](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files.jsp). For my practicum, I focused on the [[**Full-Year Consolidated Data files**]{style="color: green;"}](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files_results.jsp?cboDataYear=All&cboDataTypeY=1%2CHousehold+Full+Year+File&buttonYearandDataType=Search&cboPufNumber=All&SearchTitle=Consolidated+Data) and the [[**Medical Condition files**]{style="color: #FF00FF;"}](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files_results.jsp?cboDataYear=All&cboDataTypeY=1%2CHousehold+Full+Year+File&buttonYearandDataType=Search&cboPufNumber=All&SearchTitle=Medical+Conditions).
+
+![**Figure 1 - MEPS data files used for this practicum**](images/MEPS%20data%20files-01.png)
+
+# **Load MEPS data into R**
+
+### **1. Install R packages**
+
+There are multiple packages you need to install for this project.
+
+[***Notes: You only need to install these once***]{style="color: red;"}
+
+```{r}
+# install.packages("foreign")
+# install.packages("devtools")
+# install.packages("tidyverse")
+# install.packages("gtsummary")
+# install.packages("readr")
+# install.packages("readxl")
+# install.packages("haven")
+# install.packages("survey")
+# install.packages("RSQLite")
+# install.packages("dplyr")
+# install.packages("plotly")
+# devtools::install_github("e-mitchell/meps_r_pkg/MEPS") #This will install the MEPS package for R
+```
+
+### **2. Load R libraries**
+
+After installing the packages, you need to load the following libraries [***every time you restart R.***]{style="background-color:yellow"}
+
+```{r}
+library("foreign")
+library("devtools")
+library("tidyverse")
+library("gtsummary")
+library("readr")
+library("readxl")
+library("haven")
+library("survey")
+library("RSQLite")
+library("dplyr")
+library("plotly")
+library("MEPS")
+```
+
+### **3. Load MEPS data files into R**
+
+The MEPS package allows us to load MEPS data files directly from AHRQ MEPS website. In this example, I use the `read_MEPS` function to load the [**MEPS 2020 Full-Year Consolidated file**]{style="color: green;"} named [[**h224**]{style="color: green;"}](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-224) and the [**2020 Medical Condition file**]{style="color: #FF00FF;"} named [[**h222**]{style="color: #FF00FF;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-222) directly onto R.
+
+```{r}
+hc2020 = read_MEPS(file = "h224")
+medcon2020 = read_MEPS(file = "h222")
+```
+
+# **Analyze MEPS data**
+
+### **1. Reduce dataframe: keep your variables of interest**
+
+There are thousands of variables in the [**MEPS 2020 Full-Year Consolidated file**]{style="color: green;"} and [**2020 Medical Condition file**]{style="color: #FF00FF;"}. Using the `subset` function, I generate smaller data frames containing only a few variables I am interested in for this practicum.
+
+-   From the [**MEPS 2020 Full-Year Consolidated file h224**]{style="color: green;"}, I create a smaller data frame called [**hc2020**]{style="color: green;"} including the variables `DUPERSID`, `VARPSU`, `VARSTR`, `PERWT20F`, `AGE20X`, `SEX`, `HISPANX`, `POVCAT20`, `EDUCYR`, `WAGEP20X`, `TTLP20X`, `TOTEXP20`, `TOTSLF20`, `RXEXP20`, `RXSLF20` & `INSCOV20`.\
+    \
+-   From the [**2020 Medical Condition file h222**]{style="color: #FF00FF;"}, I create a smaller data frame called [**medcon2020**]{style="color: #FF00FF;"} including the variables `DUPERSID` & `ICD10CDX`.\
+
+```{r}
+hc2020 <- subset (hc2020, select = c("DUPERSID", "VARPSU", "VARSTR", "PERWT20F", "AGE20X", "SEX", "HISPANX", "POVCAT20", "EDUCYR", "WAGEP20X", "TTLP20X", "TOTEXP20", "TOTSLF20", "RXEXP20", "RXSLF20", "INSCOV20"))
+medcon2020 <- subset(medcon2020, select = c( "DUPERSID", "ICD10CDX"))
+```
+
+### **2. Add labels for categorical variables**
+
+Values of categorical variables are numerically coded in MEPS data, which does not give clear information when we visually inspect these variables.
+
+![**Figure 2 - Example of a categorical variable in the [MEPS 2020 Full-Year Consolidated file h224]{style="color: green;"}** ](images/Education%20variable_annotated.png)
+
+```{r}
+table(hc2020$EDUCYR)
+```
+
+To clarify what each value represents, we can add labels to these categorical variables using the functions `factor`, `as.factor` & `ifelse`
+
+-   Add labels for `EDUCYR` variable in the [**MEPS 2020 Full-Year Consolidated file**]{style="color: green;"}:
+
+```{r}
+hc2020$EDUCYR_CAT20 = as.factor(ifelse (0 == hc2020$EDUCYR, "No school/kindergarten only", 
+                                ifelse (1 <= hc2020$EDUCYR & hc2020$EDUCYR <= 8, "Elementary grades 1-8", 
+                                ifelse (9 <= hc2020$EDUCYR & hc2020$EDUCYR <= 12, "High school grades 9-12",
+                                ifelse (13 <= hc2020$EDUCYR & hc2020$EDUCYR <= 15, "1-3 years college", 
+                                ifelse (16 <= hc2020$EDUCYR, "4+ years of college",  
+                                ifelse (-15 == hc2020$EDUCYR, "Cannot be computed",
+                                ifelse (-8 ==hc2020$EDUCYR , "DK",
+                                ifelse (-7 ==hc2020$EDUCYR, "Refused", 
+                                ifelse (-1 ==hc2020$EDUCYR, "Inapplicable", "NA"))))))))))
+
+table(hc2020$EDUCYR_CAT20)
+```
+
+-   Add labels for `SEX` variable in the [**MEPS 2020 Full-Year Consolidated file**]{style="color: green;"}:
+
+```{r}
+hc2020$SEX <- factor(hc2020$SEX, levels = c(1, 2), labels = c("Male", "Female"))
+
+table(hc2020$SEX)
+```
+
+-   Add labels for `HISPANX` variable in the [**MEPS 2020 Full-Year Consolidated file**]{style="color: green;"}:
+
+```{r}
+hc2020$HISPANX <- factor(hc2020$HISPANX, levels = c(1,2), labels = c("Hispanic", "Not Hispanic"))
+
+table(hc2020$HISPANX)
+```
+
+-   Add labels for `POVCAT20` variable in the [**MEPS 2020 Full-Year Consolidated file**]{style="color: green;"}:
+
+```{r}
+hc2020$POVCAT20 <- factor(hc2020$POVCAT20, levels = c(1, 2, 3, 4, 5), labels = c("Poor", "Near poor", "Low income", "Middle income", "High income"))
+
+table(hc2020$POVCAT20)
+```
+
+-   Add labels for `INSCOV20` variable in the [**MEPS 2020 Full-Year Consolidated file**]{style="color: green;"}:
+
+```{r}
+hc2020$INSCOV20 <- factor(hc2020$INSCOV20, levels = c(1, 2, 3), labels = c("Any private", "Public only", "Uninsured"))
+
+table(hc2020$INSCOV20)
+```
+
+### **3. Merge MEPS data files**
+
+We use the `left_join` function from the `dply` package to merge the [**MEPS 2020 Full-Year Consolidated file**]{style="color: green;"} and [**2020 Medical Condition file**]{style="color: #FF00FF;"} via their matching variable `DUPERSID`. We name the merged data set `hc_medcon2020`.\
+Notice that in the [**MEPS 2020 Full-Year Consolidated file**]{style="color: green;"}, the `DUPERSID`is unique to each person in each row and thus, is not repeatable. However, in the [**2020 Medical Condition file**]{style="color: #FF00FF;"}, if a person has multiple ICD10 diagnostic codes, these diagnoses are grouped by their `DUPERSID`. As a result, the `DUPERSID` can be repeated for a person. This merging method is calld **1 to many match**.
+
+```{r}
+hc_medcon2020 <- left_join(hc2020, medcon2020, by = c("DUPERSID")) 
+
+nrow(hc_medcon2020)
+```
+
+For more detailed explanations one merging MEPS data, visit this [**additional tutorial**](https://rpubs.com/mbounthavong/MEPS_tutorial_2_Merge_data_with_R)  
+
+### **4. Identify HIV population**
+
+|     **4.1 Create an indicator for HIV ICD10 diagnostic code**
+
+The HIV ICD10 diagnostic code in the [**2020 Medical Condition file**]{style="color: #FF00FF;"} is [**Z21**]{style="color: #FF00FF;"}. Using that information, we generate a binary predictor `HIV` to differentiate patients with or without HIV diagnosis among our (potentially) repeated rows.
+
+```{r}
+hc_medcon2020$HIV[hc_medcon2020$ICD10CDX == "Z21"] = 1 
+hc_medcon2020$HIV[hc_medcon2020$ICD10CDX != "Z21" | is.na(hc_medcon2020$ICD10CDX)] = 0
+
+table(hc_medcon2020$HIV, useNA = "always") ## visualize the number of patients with and without HIV. 
+##The 'useNA' function is used to capture all patients who did not have a diagnosis code (i.e. ICD10CDX = 'NA')
+```
+
+|     **4.2 Calculate the number of times "Z21" appears for a unique patient**
+
+```{r}
+hc_medcon2020 <- hc_medcon2020 %>% 
+  group_by(DUPERSID) %>%
+  mutate(HIV_indicator = sum(HIV == "1", na.rm = TRUE)) %>% 
+  ungroup 
+
+table(hc_medcon2020$HIV_indicator)
+```
+
+|     **4.3 Transform the binary variable `HIV` in the hc_medcon2020 dataframe into a new variable that only has 0 and 1**
+
+```{r}
+hc_medcon2020 <- hc_medcon2020 %>%
+  group_by(DUPERSID) %>% 
+  mutate(HIV_binary = ifelse(HIV_indicator >= 1, 1, 0), na.rm = TRUE) %>% 
+  ungroup 
+
+table(hc_medcon2020$HIV_binary)
+```
+
+|     **4.4 Collapse dataframe to a single unique patient**
+
+```{r}
+MEPS2020 <- hc_medcon2020 %>% 
+  group_by (DUPERSID, SEX, HISPANX, POVCAT20, EDUCYR_CAT20, INSCOV20) %>% summarize_all(list(mean))
+
+table(MEPS2020$HIV_binary) #get sample size_HIV
+```
+
+### **5. Applying weights**
+
+-   Using this [**tutorial**](https://rpubs.com/mbounthavong/MEPS_tutorial_3_applying_weights), we can apply weights to obtain the weighted estimate of HIV patients in the United States in 2020.\
+
+```{r}
+options(survey.lonely.psu = 'adjust')
+
+mepsdsgn = svydesign(id = ~VARPSU, 
+                     strata = ~VARSTR, 
+                     weights = ~PERWT20F, 
+                     data = MEPS2020, 
+                     nest = TRUE)
+
+svytable(~MEPS2020$HIV_binary, design = mepsdsgn) 
+```
+
+-   We use the `tbl_svysummary` function to generate the contingency table
+
+```{r}
+mepsdsgn %>% 
+  tbl_svysummary(by = HIV_binary, 
+                 percent = "column", 
+                 include = c(AGE20X, SEX, HISPANX, POVCAT20, EDUCYR_CAT20, WAGEP20X, TTLP20X, TOTEXP20, TOTSLF20, RXEXP20, RXSLF20, INSCOV20), 
+                 statistic = list(all_continuous() ~ "{mean} ({sd})", all_categorical() ~ "{n} ({p}%)"), 
+                 digits = list(all_continuous() ~ c(0, 0), 
+                               all_categorical() ~ c(0, 1))) %>%
+                                  add_p() %>% 
+                                    modify_header(label = "**Variable**", 
+                                                  all_stat_cols() ~ "**{level}**<br>N = {n} ({style_percent(p, digits=1)}%)") %>% 
+                                                    modify_caption("2020 Weighted descriptive statistics between HIV and non-HIV patients") %>% 
+                                                      bold_labels()
+```
+
+Repeat the same process for the files from 2016 to 2019
+
+|          |                                 |                            |
+|----------|---------------------------------|----------------------------|
+| **Year** | **Full-Year Consolidated file** | **Medical Condition file** |
+| **2016**     | [[**hc192**]{style="color: green;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-192)                           | [[**hc190**]{style="color: #FF00FF;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-190)                      |
+| **2017**     | [[**hc201**]{style="color: green;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-201)                           | [[**hc199**]{style="color: #FF00FF;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-199)                      |
+| **2018**    | [[**hc209**]{style="color: green;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-209)                           | [[**hc207**]{style="color: #FF00FF;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-207)                      |
+| **2019**     | [[**hc216**]{style="color: green;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-216)                           | [[**hc214**]{style="color: #FF00FF;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-214)                      |
+
+# **Plot HIV population data** - in progress
+Using the `plot_ly` package, we create some data visualizations using the results from the contingency table.
+
+### **1. Stacked bar chart: visualizing poverty categories in HIV population**  
+```{r}
+year <- c('2016', '2017', '2018', '2019', '2020')
+poor <- c(186160, 162488, 123302, 154536, 119819)
+near_poor <- c(30870, 58830, 81270, 35477, 52774)
+low_income <- c(56948, 69803, 63544, 81215, 75320)
+middle_income <- c(43584, 55957, 49623, 45672, 78246)
+high_income <- c(29408, 143485, 98212, 75397, 169767)
+
+data1 <- data.frame(year, poor, near_poor, low_income, middle_income, high_income)
+
+fig1 <- data1 %>% plot_ly()
+fig1 <- fig1 %>% add_trace(x = ~ year, 
+                           y = ~ poor, 
+                           type = 'bar', 
+                           width = 0.7, 
+                           name = " Poor",
+                           text = poor,
+                           textfont = list(size = 14),
+                           textposition = 'auto',
+                           hovertemplate = paste('%{y:,.3~s} HIV patients with <br> <b><em>poor income</b></em> status in %{x}'),
+                           hoverlabel = list(bordercolor = 'transparent', 
+                                             font = list(size = 18, color = 'white')),
+                           marker = list(color = 'steelblue3', 
+                                         line = list(color = 'gray', width = 1)))
+
+fig1 <- fig1 %>% add_trace(x = ~ year, 
+                           y = ~ near_poor, 
+                           type = 'bar', 
+                           width = 0.7, 
+                           name = "Near poor",
+                           text = near_poor,
+                           textfont = list(size = 14),
+                           textposition = 'auto',
+                           hovertemplate = paste('%{y:,.3~s} HIV patients with <br> <b><em>near poor income</b></em> status in %{x}'),
+                           hoverlabel = list(bordercolor = 'transparent', 
+                                             font = list(size = 18, color = '#0000EE')),
+                           marker = list(color = 'lightblue', 
+                                         line = list(color = 'gray', width = 1)))
+
+fig1 <- fig1 %>% add_trace(x = ~year, 
+                           y = ~ low_income, 
+                           type = 'bar', 
+                           width = 0.7, 
+                           name = "Low income",
+                           text = low_income, 
+                           textfont = list(size = 14),
+                           textposition = 'auto',
+                           hovertemplate = paste('%{y:,.3~s} HIV patients with <br> <b><em>low income</b></em> status in %{x}'),
+                           hoverlabel = list(bordercolor = 'transparent', 
+                                             font = list(size = 18, color = 'black')),
+                           marker = list(color = 'gainsboro', 
+                                         line = list(color = 'gray', width = 1)))
+
+fig1 <- fig1 %>% add_trace(x = ~ year, 
+                           y = ~ middle_income, 
+                           type = 'bar', 
+                           width = 0.7, 
+                           name = "Middle income",
+                           text = middle_income, 
+                           textfont = list(size = 14),
+                           textposition = 'auto',
+                           hovertemplate = paste('%{y:,.3~s} HIV patients with <br> <b><em>middle income</b></em> status in %{x}'),
+                           hoverlabel = list(bordercolor = 'transparent', 
+                                             font = list(size = 18, color = 'firebrick')),
+                           marker = list(color = 'pink', 
+                                         line = list(color = 'gray', width = 1)))
+
+fig1 <- fig1 %>% add_trace(x = ~ year, 
+                           y = ~ high_income, 
+                           type = 'bar', 
+                           width = 0.7, 
+                           name = "High income",
+                           text = high_income, 
+                           textfont = list(size = 14),
+                           textposition = 'auto',
+                           hovertemplate = paste('%{y:,.3~s} HIV patients with <br> <b><em>high income</b></em> status in %{x}'),
+                           hoverlabel = list(bordercolor = 'transparent', 
+                                             font = list(size = 18, color = 'white')),
+                           marker = list(color = 'firebrick', 
+                                         line = list(color = 'gray', width = 1)))
+
+fig1 <- fig1 %>% layout(title = "Number of HIV patients by poverty category (2016 - 2020)",
+                        font = list(size = 16),
+                        barmode = 'stack',
+                        plot_bgcolor= 'white',
+                        xaxis = list(title = "Years", 
+                                     size = 12, 
+                                     tickfont = list(size = 18),
+                                     categoryorder = "array",
+                                     categoryarray = c('2016', '2017', '2018', '2019', '2020')),  ## Order & label the x-axis
+                        yaxis = list(title = "Number of HIV patients", 
+                                     size = 12, 
+                                     tickfont = list(size = 12)),
+                        margin = list(l = 20, r = 10, b = 10, t = 40))
+fig1
+```
+
+### **2. Vertical grouped bar chart: races among HIV population**
+```{r}
+year <- c('2016', '2017', '2018', '2019', '2020')  
+hispanic <- c(59214, 124513, 84416,	66646, 71780)                      
+not_hispanic <- c(287756, 366051, 331534, 325651, 424144)                        
+data2 <- data.frame(year, hispanic, not_hispanic)
+
+fig2 <- data2 %>% plot_ly()
+fig2 <- fig2 %>% add_trace(x = ~ year, 
+                           y = ~ hispanic, 
+                           type = 'bar', 
+                           width = 0.5,
+                           name = "Hispanic",
+                           text = hispanic,
+                           textposition = 'auto',
+                           hovertemplate = paste('%{y:,.3~s} <b><em>Hispanic</b></em> HIV patients in %{x}'),
+                           hoverlabel = list(bordercolor = 'black', 
+                                             font = list(size = 18, color = 'black')),
+                          marker = list(color = "#5F9EA0",
+                                        line = list(color = 'gray', width = 0.5)))
+
+fig2 <- fig2 %>% add_trace(x = ~ year,
+                           y = ~ not_hispanic, 
+                           type = 'bar', 
+                           width =0.5,
+                           name = "Not Hispanic",
+                           text = not_hispanic, 
+                           textposition = 'auto',
+                           hovertemplate = paste('%{y:,.3~s} <b><em>Non-Hispanic</b></em> HIV patients in %{x}'),
+                           hoverlabel = list(bordercolor = 'black', 
+                                             font = list(size = 18, color = 'black')),
+                           marker = list(color = "#D1EEEE", 
+                                         line = list(color = 'gray', width = 0.5)))
+
+fig2 <- fig2 %>% layout(title = "Number of HIV patients by races (2016-2020)", 
+                        font = list(size = 16),
+                        barmode = 'group',
+                        xaxis = list(title = "Years", 
+                                     size = 12, 
+                                     tickfont = list(size = 18)),
+                        yaxis = list(title = "Number of HIV patients", 
+                                     size = 12, 
+                                     tickfont = list(size=12)),
+                        margin = list(l = 50, r = 30, b = 10, t = 40))
+
+fig2
+```
+
+### **3. Bubble chart** 
+|     **3.1 Total health care and prescription expenditures, total person income and person wage among HIV population** 
+```{r}
+year <- c('2016', '2017', '2018', '2019', '2020')  
+hiv_totexp <- c(32462, 38988, 57266, 44048, 39334)
+hiv_rxexp <- c(26110, 25979, 45816, 36463, 27961)
+hiv_wage <- c(11484, 21369, 19527, 27573, 34627)
+hiv_income <- c(19877, 33938, 33123, 40410,	49069)
+
+data3.1 <- data.frame(year, hiv_totexp, hiv_rxexp, hiv_wage, hiv_income)
+
+fig3.1  <- plot_ly(data3.1, 
+                   x = ~ year, 
+                   y = ~ hiv_totexp, 
+                   name = 'HIV total<br>health care<br>expenditure', 
+                   text = hiv_totexp, 
+                   textposition = 'auto',
+                   size = ~ hiv_totexp,
+                   type = 'scatter', 
+                   mode = 'markers',
+                   marker = list (sizemode = "diameter"),
+                   hovertemplate = paste('%{x}, $%{text}'),
+                   hoverlabel = list(bordercolor = 'transparent', 
+                                     font = list(size = 16, color = 'white')))
+                   
+fig3.1 <- fig3.1 %>% add_trace(x = ~ year, 
+                               y = ~ hiv_rxexp, 
+                               name = 'HIV total<br>prescription<br>expenditure', 
+                               text = hiv_rxexp, 
+                               textposition = 'auto',
+                               size = ~ hiv_rxexp,
+                               mode = "markers",
+                               marker = list (sizemode = "diameter"),
+                               hovertemplate = paste('%{x}, $%{text}'),
+                               hoverlabel = list(bordercolor = 'transparent', 
+                                                 font = list(size = 16, color = 'white')))
+
+fig3.1 <- fig3.1 %>% add_trace(x = ~ year, 
+                               y = ~ hiv_income, 
+                               name = 'HIV person<br>total income', 
+                               text = hiv_income, 
+                               textposition = 'auto',
+                               size = ~ hiv_income,
+                               mode = "markers",
+                               marker = list (sizemode = "diameter"),
+                               hovertemplate = paste('%{x}, $%{text}'),
+                               hoverlabel = list(bordercolor = 'transparent', 
+                                               font = list(size = 16, color = 'white')))
+
+fig3.1 <- fig3.1 %>% add_trace(x = ~ year, 
+                             y = ~ hiv_wage, 
+                             name = 'HIV person<br>wage', 
+                             text = hiv_wage, 
+                             textposition = 'auto',
+                             size = ~ hiv_wage,
+                             mode = "markers",
+                             marker = list (sizemode = "diameter"),
+                             hovertemplate = paste('%{x}, $%{text}'),
+                             hoverlabel = list(bordercolor = 'transparent', 
+                                               font = list(size = 16, color = 'white')))
+
+fig3.1 <- fig3.1 %>% layout(title = "Medical Expenditures and Income among HIV Patients (2016-2020)", 
+                            font = list(size = 14),
+                            xaxis = list(title = "Years", 
+                                         size = 12, 
+                                         tickfont = list(size = 18)),
+                            yaxis = list(title = "US Dollar", 
+                                         size = 12, 
+                                         tickfont = list(size = 12)),
+                            margin = list(l = 10, r = 10, b = 10, t = 40))
+
+fig3.1
+```
+
+|     **3.2 Health insurance status among HIV population**
+
+```{r}
+year <- c('2016', '2017', '2018', '2019', '2020')
+hiv_private <- c(75413, 218633, 220333, 140474, 273282)
+hiv_public <- c(243215, 246815, 178129, 251824, 222642)
+hiv_uninsured <- c(28343, 25116, 17488, 0, 0)
+
+data3.2 <- data.frame(year, hiv_private, hiv_public, hiv_uninsured)
+
+fig3.2  <- plot_ly(data3.2, 
+                   x = ~ year, 
+                   y = ~ hiv_private, 
+                   type = 'scatter', 
+                   name = "Private ",
+                   text = "Any private insurance",
+                   textposition = 'auto',
+                   size = ~hiv_private,
+                   mode = 'markers',
+                   marker = list(color='#FF82AB', 
+                               line = list(color ="#FF82AB"), 
+                               sizemode = "diameter", 
+                               opacity = 0.6),
+                   hovertemplate = paste('%{y:,.3~s} HIV patients with <b><em>private insurance</b></em> in %{x}'),
+                   hoverlabel = list(bordercolor = 'black', 
+                                   font = list(size = 18, color = 'black')))
+
+fig3.2 <- fig3.2 %>% add_trace(x = ~ year, 
+                               y = ~ hiv_public, 
+                               type = 'scatter', 
+                               name = "Public",
+                               text ="Public insurance only",
+                               textposition = 'auto',
+                               size = ~hiv_public,
+                               mode = 'marker',
+                               marker = list(color='#2E8B57', 
+                                         line = list(color ="#2E8B57"), 
+                                         sizemode = "diameter", 
+                                         opacity = 0.6),
+                               hovertemplate = paste('%{y:,.3~s} HIV patients with <b><em>public insurance</b></em> in %{x}'),
+                               hoverlabel = list(bordercolor = 'black', 
+                                             font = list(size = 18, color = 'white')))
+
+fig3.2 <- fig3.2 %>% add_trace(x = ~ year, 
+                               y = ~ hiv_uninsured, 
+                               type = 'scatter', 
+                               name = "No insurance",
+                               text = "Uninsured",
+                               textposition = 'auto',
+                               size = ~hiv_uninsured,
+                               mode = 'marker',
+                               marker = list(color='#EEB422', 
+                                             line = list(color ="#EEB422"), 
+                                             sizemode = "diameter", 
+                                             opacity = 0.7),
+                               hovertemplate = paste('%{y:,.3~s} HIV patients with <b><em>no insurance</b></em> in %{x}'),
+                               hoverlabel = list(bordercolor = 'black', 
+                                             font = list(size = 18, color = 'black')))
+
+fig3.2 <- fig3.2 %>% layout(title = 'Health Insurance Coverage Status among HIV patients (2016-2020)',
+                            font = list(size = 14),
+                            yaxis = list(title = "Number of HIV patients", 
+                                     size = 12, 
+                                     tickfont = list(size = 12)),
+                            xaxis = list(title = "Years", 
+                                     size = 12, 
+                                     tickfont = list(size = 18)),
+                            margin = list(l = 30, r = 10, b = 10, t =40))
+
+fig3.2
+```
+
+### **4. Line plot - total health care and prescription expenditures, total person income and person wage among HIV population** 
+```{r}
+fig4  <- plot_ly(data3.1, 
+                 x = ~ year, 
+                 y = ~ hiv_totexp, 
+                 name = 'HIV total<br>health care<br>expenditure', 
+                 text = hiv_totexp, 
+                 textposition = 'auto',
+                 type = 'scatter', 
+                 mode = 'lines+markers',
+                 line = list (width = 2),
+                 hovertemplate = paste('%{x}, $%{text}'),
+                 hoverlabel = list(bordercolor = 'transparent', 
+                                   font = list(size = 18, color = 'white')))
+                   
+
+fig4 <- fig4 %>% add_trace(x = ~ year, 
+                           y = ~ hiv_rxexp, 
+                           name = 'HIV total<br>prescription<br>expenditure', 
+                           text = hiv_rxexp, 
+                           textposition = 'auto',
+                           type = 'scatter', 
+                           mode = 'lines+markers',
+                           line = list (width = 2),
+                           hovertemplate = paste('%{x}, $%{text}'),
+                           hoverlabel = list(bordercolor = 'transparent', 
+                                             font = list(size = 18, color = 'white')))
+                               
+
+fig4 <- fig4 %>% add_trace(x = ~ year, 
+                           y = ~ hiv_income, 
+                           name = 'HIV person<br>total income', 
+                           text = hiv_income, 
+                           textposition = 'auto',
+                           type = 'scatter', 
+                           mode = 'lines+markers',
+                           line = list (width = 2),
+                           hovertemplate = paste('%{x}, $%{text}'),
+                           hoverlabel = list(bordercolor = 'transparent', 
+                                             font = list(size = 18, color = 'white')))
+                               
+
+fig4 <- fig4 %>% add_trace(x = ~ year, 
+                           y = ~ hiv_wage, 
+                           name = 'HIV person<br>wage', 
+                           text = hiv_wage, 
+                           textposition = 'auto',
+                           type = 'scatter', 
+                           mode = 'lines+markers',
+                           line = list (width = 2),
+                           hovertemplate = paste('%{x}, $%{text}'),
+                           hoverlabel = list(bordercolor = 'transparent', 
+                                             font = list(size = 18, color = 'white')))
+                               
+
+fig4 <- fig4 %>% layout(title = "Medical Expenditures and Income among HIV Patients (2016-2020)", 
+                        font = list(size = 14),
+                        xaxis = list(title = "Years", 
+                                     size = 12, 
+                                     tickfont = list(size = 18)),
+                        yaxis = list(title = "US Dollar", 
+                                     size = 12, 
+                                     tickfont = list(size = 12)),
+                        margin = list(l = 20, r = 5, b = 30, t = 40))
+
+fig4
+```
+### **5. Stacked area chart with original values - genders among HIV population**
+```{r}
+year <- c('2016', '2017', '2018', '2019', '2020')
+hiv_male <- c(254645,	350036,	282527,	344585,	392146)
+hiv_female <- c(92325, 140527, 133422, 47712, 103778)
+
+data5 <- data.frame(year, hiv_male, hiv_female)
+
+fig5 <- plot_ly (data5,
+                 x = ~ year,
+                 y = ~hiv_male,
+                 name = 'Male', 
+                 type = 'scatter',
+                 mode = 'none',
+                 stackgroup = 'one',
+                 fillcolor = '#87CEFF',
+                 hovertemplate = paste('%{y:,.3~s} <b><em>male</b></em> patients in %{x}'),
+                 hoverlabel = list(bordercolor = 'black', 
+                                   font = list(size = 18, color = 'black')))
+
+fig5 <- fig5 %>% add_trace (y = ~ hiv_female,
+                            name = 'Female', 
+                            fillcolor = '#FFC0CB',
+                            hovertemplate = paste('%{y:,.3~s} <b><em>female</b></em> patients in %{x}'),
+                            hoverlabel = list(bordercolor = 'black', 
+                                              font = list(size = 18, color = 'black')))
+                            
+fig5 <- fig5 %>% layout(title = 'Gender among HIV patients (2016-2020)',
+                        font = list(size = 16),
+                        yaxis = list(title = "Number of HIV patients", 
+                                     size = 12, 
+                                     tickfont = list(size = 12), 
+                                     tickformat = ".3~s",
+                                     tickvals = c(100000,200000,300000,400000,500000)),
+                        xaxis = list(title = "Years", 
+                                     size = 12, 
+                                     tickfont = list(size = 18)),
+                        margin = list(l = 50, r = 50, b = 50, t = 50))
+
+fig5
+```
+### **6. Stacked area chart with cumulative values  - education categories among HIV population**
+```{r}
+year <- c('2016', '2017', '2018', '2019', '2020')
+elementary<- c(6699, 17122, 31790, 19258, 13302)
+high_school <- c(171920, 214518, 140991, 133889, 194797)
+college1_3 <- c(106588,	122049,	123008,	120942,	112365)
+college4_more <- c(61762,	129630,	120160,	118208,	175460)
+
+
+data6 <- data.frame(year, elementary, high_school, college1_3, college4_more)
+
+fig6 <-  plot_ly(data6, 
+                 x = ~ year, 
+                 y = ~ high_school, 
+                 name = "High School",
+                 text = high_school,
+                 textposition = 'auto',
+                 type = 'scatter',
+                 mode = 'none',
+                 stackgroup = 'one',
+                 groupnorm = 'percent',
+                 hovertemplate = paste('%{text:,.3~s} HIV patients, %{y}'),
+                 fillcolor = '#FFF68F')
+
+fig6 <- fig6 %>% add_trace(y = ~ college1_3, 
+                           name = "1-3 years college",
+                           text = college1_3, 
+                           textposition = 'auto',
+                           hovertemplate = paste('%{text:,.3~s} HIV patients, %{y}'), 
+                           fillcolor = '#87CEFA')
+
+fig6 <- fig6 %>% add_trace(y = ~ college4_more,
+                           name = "4+ years college",
+                           text = college4_more,
+                           textposition = 'auto',
+                           hovertemplate = paste('%{text:,.3~s} HIV patients, %{y}'),
+                           fillcolor = '#FFB6C1')
+
+fig6 <- fig6 %>% add_trace(y = ~ elementary,
+                           name = "Elementary",
+                           text = elementary,
+                           textposition = 'auto',
+                           hovertemplate = paste('%{text:,.3~s} HIV patients, %{y}'),
+                           fillcolor = '#528B8B')
+
+fig6 <- fig6 %>% layout(title = "Proportions of Education Levels among HIV patients (2016 - 2020)",
+                        font = list (size = 14), 
+                        xaxis = list(title = "Years", 
+                                     size = 12, 
+                                     tickfont = list(size = 18)),
+                        yaxis = list(title = "Cummulative Percentage", 
+                                     size = 12, 
+                                     tickfont = list(size = 12), 
+                                     ticksuffix = '%', 
+                                     tickformat = ".1f",
+                                     tickvals = c(20,40,60,80,100)),
+                       hovermode = "x unified", ## a single hover label describing one point per trace, for points at the same x value as the cursor
+                       margin = list(l = 5, r = 5, b = 10, t = 40))
+
+fig6
+```
+
+
+# **Acknowledgements**
