@@ -54,7 +54,7 @@ There are multiple packages you need to install for this project.
 
 ### **2. Load R libraries**
 
-After installing the packages, you need to load the following libraries [***every time you restart R.***]{style="background-color:yellow"}
+After installing the packages, you need to load the following libraries [***every time you restart R.***]{style="color: red;"}
 
 ```{r}
 library("foreign")
@@ -723,3 +723,6 @@ fig6
 
 
 # **Acknowledgements**
+
+I would like to express my deepest gratitude to my site mentor, Dr. [**Mark Bounthavong**](https://mbounthavong.com/) for his constant support throughout this practicum. I appreciate his making sure this project challenging but interesting and beneficial at the same time, and that I was able to grow professionally and academically. These efforts would not have been possible without all his help.
+
