@@ -1,5 +1,5 @@
 ---
-title: "Medical Expenditure Panel Survey: Data Visualization on HIV Population in the United States "
+title: "Medical Expenditure Panel Survey: Data Visualization on HIV Population in the United States from 2016 to 2020"
 author: "Jennifer Pham"
 date: "`r Sys.Date()`"
 output:
@@ -25,9 +25,9 @@ Researchers have used the Agency for Healthcare Research and Quality (AHRQ) Medi
 
 # **Access MEPS Data**
 
-There are various types of dataset you can access in the [**MEPS data files page**](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files.jsp). For my practicum, I focused on the [[**Full-Year Consolidated Data files**]{style="color: green;"}](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files_results.jsp?cboDataYear=All&cboDataTypeY=1%2CHousehold+Full+Year+File&buttonYearandDataType=Search&cboPufNumber=All&SearchTitle=Consolidated+Data) and the [[**Medical Condition files**]{style="color: #FF00FF;"}](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files_results.jsp?cboDataYear=All&cboDataTypeY=1%2CHousehold+Full+Year+File&buttonYearandDataType=Search&cboPufNumber=All&SearchTitle=Medical+Conditions).
+There are various types of dataset you can access in the [**MEPS data files page**](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files.jsp). For my practicum, I focused on the [**[Full-Year Consolidated Data files]{style="color: green;"}**](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files_results.jsp?cboDataYear=All&cboDataTypeY=1%2CHousehold+Full+Year+File&buttonYearandDataType=Search&cboPufNumber=All&SearchTitle=Consolidated+Data) and the [**[Medical Condition files.]{style="color: #FF00FF;"}**](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files_results.jsp?cboDataYear=All&cboDataTypeY=1%2CHousehold+Full+Year+File&buttonYearandDataType=Search&cboPufNumber=All&SearchTitle=Medical+Conditions)
 
-![**Figure 1 - MEPS data files used for this practicum**](images/MEPS%20data%20files-01.png)
+![**Figure 1 - MEPS data files used for this practicum**](images/MEPS%20data%20files-01.png){width="692"}
 
 # **Load MEPS data into R**
 
@@ -73,11 +73,11 @@ library("MEPS")
 
 ### **3. Load MEPS data files into R**
 
-The MEPS package allows us to load MEPS data files directly from AHRQ MEPS website. In this example, I use the `read_MEPS` function to load the [**MEPS 2020 Full-Year Consolidated file**]{style="color: green;"} named [[**h224**]{style="color: green;"}](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-224) and the [**2020 Medical Condition file**]{style="color: #FF00FF;"} named [[**h222**]{style="color: #FF00FF;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-222) directly onto R.
+The MEPS package allows us to load MEPS data files directly from AHRQ MEPS website. In this example, I use the `read_MEPS` function to load the [**[MEPS 2020 Full-Year Consolidated file h224]{style="color: green;"}**](https://meps.ahrq.gov//mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-224) and the [**[2020 Medical Condition file h222]{style="color: #FF00FF;"}**](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-222) directly onto R.
 
 ```{r}
 hc2020 = read_MEPS(file = "h224")
-medcon2020 = read_MEPS(file = "h222")
+medcon2020 = read_MEPS(file = "h222") 
 ```
 
 # **Analyze MEPS data**
@@ -99,7 +99,7 @@ medcon2020 <- subset(medcon2020, select = c( "DUPERSID", "ICD10CDX"))
 
 Values of categorical variables are numerically coded in MEPS data, which does not give clear information when we visually inspect these variables.
 
-![**Figure 2 - Example of a categorical variable in the [MEPS 2020 Full-Year Consolidated file h224]{style="color: green;"}** ](images/Education%20variable_annotated.png)
+![**Figure 2 - Example of a categorical variable in the MEPS 2020 Full-Year Consolidated file h224**](images/EDUCYR%20variable.png)
 
 ```{r}
 table(hc2020$EDUCYR)
@@ -166,7 +166,7 @@ hc_medcon2020 <- left_join(hc2020, medcon2020, by = c("DUPERSID"))
 nrow(hc_medcon2020)
 ```
 
-For more detailed explanations one merging MEPS data, visit this [**additional tutorial**](https://rpubs.com/mbounthavong/MEPS_tutorial_2_Merge_data_with_R)  
+For more detailed explanations one merging MEPS data, visit this [**additional tutorial**](https://rpubs.com/mbounthavong/MEPS_tutorial_2_Merge_data_with_R)
 
 ### **4. Identify HIV population**
 
@@ -248,18 +248,20 @@ mepsdsgn %>%
 
 Repeat the same process for the files from 2016 to 2019
 
-|          |                                 |                            |
-|----------|---------------------------------|----------------------------|
-| **Year** | **Full-Year Consolidated file** | **Medical Condition file** |
-| **2016**     | [[**hc192**]{style="color: green;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-192)                           | [[**hc190**]{style="color: #FF00FF;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-190)                      |
-| **2017**     | [[**hc201**]{style="color: green;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-201)                           | [[**hc199**]{style="color: #FF00FF;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-199)                      |
-| **2018**    | [[**hc209**]{style="color: green;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-209)                           | [[**hc207**]{style="color: #FF00FF;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-207)                      |
-| **2019**     | [[**hc216**]{style="color: green;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-216)                           | [[**hc214**]{style="color: #FF00FF;"}](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-214)                      |
+|          |                                                                                                                                   |                                                                                                                                     |
+|------------------|-----------------------------|-------------------------|
+| **Year** | **Full-Year Consolidated file**                                                                                                   | **Medical Condition file**                                                                                                          |
+| **2016** | [**[hc192]{style="color: green;"}**](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-192) | [**[hc190]{style="color: #FF00FF;"}**](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-190) |
+| **2017** | [**[hc201]{style="color: green;"}**](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-201) | [**[hc199]{style="color: #FF00FF;"}**](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-199) |
+| **2018** | [**[hc209]{style="color: green;"}**](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-209) | [**[hc207]{style="color: #FF00FF;"}**](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-207) |
+| **2019** | [**[hc216]{style="color: green;"}**](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-216) | [**[hc214]{style="color: #FF00FF;"}**](https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_detail.jsp?cboPufNumber=HC-214) |
 
-# **Plot HIV population data** - in progress
+# **Plot HIV population data**
+
 Using the `plot_ly` package, we create some data visualizations using the results from the contingency table.
 
-### **1. Stacked bar chart: visualizing poverty categories in HIV population**  
+### **1. Stacked bar chart: visualizing poverty categories in HIV population**
+
 ```{r}
 year <- c('2016', '2017', '2018', '2019', '2020')
 poor <- c(186160, 162488, 123302, 154536, 119819)
@@ -358,6 +360,7 @@ fig1
 ```
 
 ### **2. Vertical grouped bar chart: races among HIV population**
+
 ```{r}
 year <- c('2016', '2017', '2018', '2019', '2020')  
 hispanic <- c(59214, 124513, 84416,	66646, 71780)                      
@@ -405,8 +408,10 @@ fig2 <- fig2 %>% layout(title = "Number of HIV patients by races (2016-2020)",
 fig2
 ```
 
-### **3. Bubble chart** 
-|     **3.1 Total health care and prescription expenditures, total person income and person wage among HIV population** 
+### **3. Bubble chart**
+
+|     **3.1 Total health care and prescription expenditures, total person income and person wage among HIV population**
+
 ```{r}
 year <- c('2016', '2017', '2018', '2019', '2020')  
 hiv_totexp <- c(32462, 38988, 57266, 44048, 39334)
@@ -551,7 +556,8 @@ fig3.2 <- fig3.2 %>% layout(title = 'Health Insurance Coverage Status among HIV 
 fig3.2
 ```
 
-### **4. Line plot - total health care and prescription expenditures, total person income and person wage among HIV population** 
+### **4. Line plot - total health care and prescription expenditures, total person income and person wage among HIV population**
+
 ```{r}
 fig4  <- plot_ly(data3.1, 
                  x = ~ year, 
@@ -618,7 +624,9 @@ fig4 <- fig4 %>% layout(title = "Medical Expenditures and Income among HIV Patie
 
 fig4
 ```
+
 ### **5. Stacked area chart with original values - genders among HIV population**
+
 ```{r}
 year <- c('2016', '2017', '2018', '2019', '2020')
 hiv_male <- c(254645,	350036,	282527,	344585,	392146)
@@ -659,7 +667,9 @@ fig5 <- fig5 %>% layout(title = 'Gender among HIV patients (2016-2020)',
 
 fig5
 ```
-### **6. Stacked area chart with cumulative values  - education categories among HIV population**
+
+### **6. Stacked area chart with cumulative values - education categories among HIV population**
+
 ```{r}
 year <- c('2016', '2017', '2018', '2019', '2020')
 elementary<- c(6699, 17122, 31790, 19258, 13302)
@@ -721,8 +731,10 @@ fig6 <- fig6 %>% layout(title = "Proportions of Education Levels among HIV patie
 fig6
 ```
 
-
 # **Acknowledgements**
 
 I would like to express my deepest gratitude to my site mentor, Dr. [**Mark Bounthavong**](https://mbounthavong.com/) for his constant support throughout this practicum. I appreciate his making sure this project challenging but interesting and beneficial at the same time, and that I was able to grow professionally and academically. These efforts would not have been possible without all his help.
 
+# **Work in progress**
+
+This is a work in progress. I will make updates as I learn more.
